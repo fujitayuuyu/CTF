@@ -347,10 +347,10 @@ Flag format: yyyy-mm-dd hh:mm:ss"
 * sample1のすぐ後ろにあった
 
 ### ◇ 実行時期を探る
-* sample2以降の作成以降に.netの一時ファイルにdllが作成されていた
+* sample2以降の作成以降に.netの一時フォルダにdllが作成されていた
 ![image](https://github.com/user-attachments/assets/53a32643-61ff-4202-b005-4678b891914f)
 
-### ◇ その後に続いている怪しいファイル
+### ◇ .netの一時フォルダに作成されていたファイル
 * `.\Windows\Microsoft.NET\Framework64\v4.0.30319\Temporary ASP.NET Files\root\a056c683\f67bca3c\submit.aspx.cdcab7d2.compiled`
 * `.\Windows\Microsoft.NET\Framework64\v4.0.30319\Temporary ASP.NET Files\root\a056c683\f67bca3c\App_Web_aa0aecbt.dll`
 
