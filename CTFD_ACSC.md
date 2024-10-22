@@ -323,4 +323,48 @@ MFTECmd.exe -f "$MFT" --csv "mft_timeline" --fl
 * 「Windows ファストフォレンジック解析手順書？ by fujifuji」  
 自分が作った紙です。
 
-##
+# 5 IA-4
+## (1) 問題
+![image](https://github.com/user-attachments/assets/4d7a6228-0bfa-4910-a17b-3a62bbeb65b2)
+```
+Webサーバへのアクセスを得た攻撃者はついに核となるツール、"sample2"のドロップに成功しました。このツールが最初に使われたのは何時(UTC)ですか？
+
+フラグフォーマット： yyyy-mm-dd hh:mm:ss
+
+"After calling home, the actor finally succeeded in dropping their core tool, sample 2. What time (UTC) was this tool first used?
+
+Flag format: yyyy-mm-dd hh:mm:ss"
+
+```
+
+## (2) 方針
+* まずsample2のドロップ時期を探る、その後、/Windows/Prefechは以下を見て同じくらいに作成されたものを探す
+
+
+## (3) 実行
+### ◇ sample2(２回目にドロップされたファイル)を見つける
+![image](https://github.com/user-attachments/assets/2b093eda-cf36-4c2f-bec8-3c72cc6cea5b)
+* sample1のすぐ後ろにあった
+
+### ◇ 実行時期を探る
+* sample2以降の作成以降に.netのdllが作成されていた
+![image](https://github.com/user-attachments/assets/53a32643-61ff-4202-b005-4678b891914f)
+
+### ◇ その後に続いている怪しいファイル
+* `.\Windows\Microsoft.NET\Framework64\v4.0.30319\Temporary ASP.NET Files\root\a056c683\f67bca3c\submit.aspx.cdcab7d2.compiled`
+* `.\Windows\Microsoft.NET\Framework64\v4.0.30319\Temporary ASP.NET Files\root\a056c683\f67bca3c\App_Web_aa0aecbt.dll`
+
+### ◇ \Windows\Microsoft.NET\Framework64\v4.0.30319\Temporary ASP.NET Filesについて調べる
+\Windows\Microsoft.NET\Framework64\v4.0.30319\Temporary ASP.NET Files は、Web アプリケーションをコンパイルしたときに一時的に生成されるアセンブリが保存されるフォルダーだった。
+
+#### つまりどうゆうことか
+つまり、「`submit.aspx.cdcab7d2.compiled`、`App_Web_aa0aecbt.dll`」は、ダウンロードされたものではなく、何らかのコードによって生成されたファイルとわかる。
+
+#### つなげて考えてみる
+sample2の作成後、連続して、「`submit.aspx.cdcab7d2.compiled`、`App_Web_aa0aecbt.dll`」が作成されていたのでこれは、sample2の実行により、できたものだと考えられる
+
+### ◇ 結論
+「`submit.aspx.cdcab7d2.compiled`、`App_Web_aa0aecbt.dll`」の作成日時がsample2の実行時刻 ⇒ 2021-04-01 02:55:29
+## (4) 参考文献
+`\Windows\Microsoft.NET\Framework64\v4.0.30319\Temporary ASP.NET Files`について書いてあった：https://manage.accuwebhosting.com/knowledgebase/5034/How-to-Clear-the-ASP.NET-Temporary-files-in-Windows.html
+
