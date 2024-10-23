@@ -573,11 +573,11 @@ Microsoft-Windows-PowerShell%4Operational
 時間帯は違うが、DMZ-WEBPUB\administratorでWmiが実行されていた(ISAの情報を取得していた。)
 ![image](https://github.com/user-attachments/assets/ea732575-011f-4ed6-b296-798e682d278c)
 
-### ◇ corpのWindowsDefenderのログ
+### ◇ corp-webdevのWindowsDefenderのログ
 ![image](https://github.com/user-attachments/assets/06490524-151e-4a1c-bdf2-69fde6dbf817)
 時間帯は近くないが、**sysinternalsは以下がDefenderのスキャンの対象外のディレクトリに設定されていた。**
 
-### ◇ corpのMFTを確認
+### ◇ corp-webdevのMFTを確認
 #### 見つかったもの1つ目
 ![image](https://github.com/user-attachments/assets/861c4107-4c28-4aed-b082-1351f4a6ffe3)
 * container.datがdev_agardnerの配下で作成されていた。
@@ -599,10 +599,6 @@ Microsoft-Windows-PowerShell%4Operational
 #### 見つかったもの5つ目
 ![image](https://github.com/user-attachments/assets/27ab39f2-8f01-4a65-9297-083ac6cbd437)
 * PowershellのフォルダにStartupProfileData-NonInteractiveが実行されていた。
-
-### ◇ corpのドメインを確認
-レジストリから確認した
-![image](https://github.com/user-attachments/assets/b6d643b6-e2b4-4d6e-8885-b05e11fafdda)
 
 ### ◇ 結論
 Webから攻撃を受けたということと、インストールされたインターナルのWindowsツールを使用していたことからIIS APPPOOL\alienで攻撃したのだと考えられる
@@ -653,7 +649,7 @@ webサーバは、IP が10.1.1.110だった。
 ## (2) 方針？
 その前のセキュリティログの検索で2021/04/01 3:29:23 にドメインに対するalien_dbの認証が実施されていたのでこれだと考えられる。
 ## (3) 考察(推測)
-同時刻、03:29:23に「Windows NUPdate」のタスクが作成されていたので、このalien_dbの資格情報を利用して、copwebに悪意のあるタスクを作成し、権限昇格したのだ思われる。
+同時刻、03:29:23に「Windows NUPdate」のタスクが作成されていたので、このalien_dbの資格情報を利用して、corp-webdevに悪意のあるタスクを作成し、権限昇格したのだ思われる。
 
 # 12 PE-5
 ## (1) 問題
@@ -671,7 +667,8 @@ Flag format: PID"
 PE-3の時得たMFTの情報から`Windows NUPdate`タスクが作成されたと考えられる
 ![image](https://github.com/user-attachments/assets/5431d26c-19ef-4094-9c17-1dd795f65119)
 * なのでWindowsTaskSchedulerのログを確認する
-  
+
+* タスクスケジューラのログでプロセスの登録イベントIDは`106`
 ## (3) 実行
 ### ◇ TaskSchedulerのログを確認する
 Microsoft-Windows-TaskScheduler/Operationalを確認
@@ -681,8 +678,17 @@ Microsoft-Windows-TaskScheduler/Operationalを確認
 * 一番初めにprocdump.exeが実行されていた。権限昇格のために重要なプロセスをダンプしたと思われる
 * PID 5372で実行されていた
 
+### ◇ Windows\system32\Taskディレクトリ以下を確認
+![image](https://github.com/user-attachments/assets/80416930-3f37-4ea0-8194-9eb30f58b5d5)
+* こちらを見ても存在が確認できた。また、新たに、Windows YUPdateという不審タスクを発見した
+![image](https://github.com/user-attachments/assets/67b0eded-405b-4899-9b88-58432f3885ea)
+* sysinternalsフォルダは以下をディフェンダーのスキャンにさらされないように設定するタスクであった。
+![image](https://github.com/user-attachments/assets/b106c0fc-b2c6-4e2a-a44b-a1860a60dfe2)
+* どちらもIIS APPPOOL/alienによって登録されていた。
+
 ### ◇ 結論
-PID 5372で実行されている。
+PID 5372で実行されている。また、確実にIIS APPPOOL/alienによって登録されていたことが分かった。
+
 
 ## (4) 文献
 procdumpコマンドとは、：https://learn.microsoft.com/ja-jp/sysinternals/downloads/procdump
@@ -698,5 +704,53 @@ procdumpコマンドとは、：https://learn.microsoft.com/ja-jp/sysinternals/d
 * 2021-04-01 lsass.dmpがあった
 
 ## (4) 考察(推測)
-lsassの実行メモリがダンプされてしまっていることから、mimikatz等のツールを用いてcorpwebマシンの資格情報は、このマシンでログインされたユーザ及び利用したチケットが奪われたと考えられる
+lsassの実行メモリがダンプされてしまっていることから、mimikatz等のツールを用いてcorp-webdevマシンの資格情報は、このマシンでログインされたユーザ及び利用したチケットが奪われたと考えられる
 
+# 13 RA-1
+## (1) 問題
+![image](https://github.com/user-attachments/assets/c2d447c0-8fba-45eb-8632-c8f57ce86ba3)
+
+## (2) 方針
+sample2ないし、submit.aspxへのアクセスを確認する
+
+## (3) 実行
+![image](https://github.com/user-attachments/assets/7f9f2a7c-e7e5-4844-ab9a-cae2d1d48908)
+* 2021-04-05 21:57:12 だった
+# 14 RA-2
+## (1) 問題
+![image](https://github.com/user-attachments/assets/9037cdc7-375b-4dbe-ac2e-d55ee46d2c6e)
+## (2) 方針
+* Defenderとかに検知されたと考えdmz-webdevのDefenderのイベントログファイルを調べる
+* 2021-04-05 21:57:12 の付近のログを見る
+
+## (3) 実行
+### ◇ Windows Defenderのログを確認
+![image](https://github.com/user-attachments/assets/46b1f518-bc9c-4191-bc9b-dc6a3e6ae0e3)
+* App_Web_aa0aecbt.dllがDefenderに検知されていた。
+
+![image](https://github.com/user-attachments/assets/feecec06-60c9-4b7e-a945-5eef4fcdd293)
+* Defenderによって、`Backdoor:MSIL/Chopper.F!dha`と検知されていた。
+### ◇ 検知されたツールの一般名を調べる
+![image](https://github.com/user-attachments/assets/ab159af5-d34f-4adf-bcc7-ba4d6da3dff2)
+「`China Chopper`」と呼ばれるようだ
+
+### ◇ 結論
+このツールは、「`China Chopper`」
+
+### ◇ Web shellの変更？について(推測)
+![image](https://github.com/user-attachments/assets/2ae7414c-81e1-46b6-a5fd-c0a94fb940bc)
+`submit.aspx`へのアクセスができなくなった以降のログを確認すると`2021-04-05 23:16:07`から`/global.aspx`にアクセスするようになった。
+* つまり、別のツールを用いてDefenderを避けようとしてたのでは？
+
+## (4)  参考文献
+China Chopperについて：https://www.cisa.gov/news-events/analysis-reports/ar21-072c
+
+# 14 RA-3
+## (1) 問題
+![image](https://github.com/user-attachments/assets/460132f6-366e-49a5-8e7e-a325db5a1524)
+
+## (2) 方針
+* レプリケーションするサービスである`DFSR`のイベントログを確認し、エラーがないか見てみる
+* 再度WebShellを蔵置とあるので今度は、「`global.aspx`」のほうだと思われる
+
+## (3) 実行
