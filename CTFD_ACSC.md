@@ -752,5 +752,33 @@ China Chopperについて：https://www.cisa.gov/news-events/analysis-reports/ar
 ## (2) 方針
 * レプリケーションするサービスである`DFSR`のイベントログを確認し、エラーがないか見てみる
 * 再度WebShellを蔵置とあるので今度は、「`global.aspx`」のほうだと思われる
+* corp-webdevマシンのほうに複製しているはずなのでそちらのログを確認する
 
 ## (3) 実行
+### ◇ DFSRのログを確認(dmz-webdev)
+うまいログが見つからなかった。エラーは、起こしていたが細かいのは、わからなかった
+### ◇ corp-webdevマシンのWebのアクセスログを確認
+![image](https://github.com/user-attachments/assets/795d0483-904a-4ce0-9282-29469f861d6e)
+* 2021-04-05 23:16:25 にアクセスできていなかった。
+
+### ◇ DFSRのログを確認(corp-webdev)
+* `2021-04-05 23:16:07`と23:16:25の間くらいにあると考えられる
+エラーは分かるがうまく見つけられなかった。
+
+# 15 RA-4
+## (1) 問題
+![image](https://github.com/user-attachments/assets/30765a09-43f3-49f3-bcdf-75b069fa6cda)
+
+## (2) 方針
+* ホスト間の接続なのでalien_dbのディレクトリが作成された時間に近いと考えられる
+* WinRMやnetlogonまたは、RDPが利用されている可能性があるのでセキュリティイベントログを確認する
+
+## (3) 実行 
+### ◇ 前回見つけた情報
+![image](https://github.com/user-attachments/assets/5431d26c-19ef-4094-9c17-1dd795f65119)
+* 2021-04-01 03:30:34 - alien_dbのフォルダが作成されていた。
+* ユーザのプロファイルがこの時作成されていたのでalien_dbを用いてRDP等でアクセスした可能性が高い
+
+![image](https://github.com/user-attachments/assets/2ae7414c-81e1-46b6-a5fd-c0a94fb940bc)
+`submit.aspx`へのアクセスができなくなった以降のログを確認すると`2021-04-05 23:16:07`から`/global.aspx`にアクセスするようになった。
+### ◇ 2021-04-05 23:16:07以降のログインを確認する
