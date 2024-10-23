@@ -529,7 +529,7 @@ Flag format: yyyy-mm-dd hh:mm:ss"
 
 ## (3) 実行
 ![image](https://github.com/user-attachments/assets/33f64d6f-1f8f-4f1f-a702-b9344ead4d7c)
-
+3:08:14だった
 # 9 PE-2
 ## (1) 問題
 ![image](https://github.com/user-attachments/assets/4cc60c8d-1315-4daa-b162-128fd7f2e69e)
@@ -603,8 +603,6 @@ Microsoft-Windows-PowerShell%4Operational
 ### ◇ corpのドメインを確認
 レジストリから確認した
 ![image](https://github.com/user-attachments/assets/b6d643b6-e2b4-4d6e-8885-b05e11fafdda)
-
-### ◇ 
 
 ### ◇ 結論
 Webから攻撃を受けたということと、インストールされたインターナルのWindowsツールを使用していたことからIIS APPPOOL\alienで攻撃したのだと考えられる
