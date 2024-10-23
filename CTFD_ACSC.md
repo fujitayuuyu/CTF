@@ -1,4 +1,4 @@
-![image](https://github.com/user-attachments/assets/744f3b28-4278-4f5e-9286-04b6617e7340)# 1 GS-3 
+![image](https://github.com/user-attachments/assets/1f3107ee-7192-4e9f-ada9-35e0a5062dc8)![image](https://github.com/user-attachments/assets/744f3b28-4278-4f5e-9286-04b6617e7340)# 1 GS-3 
 ## (1) 問題
 ![image](https://github.com/user-attachments/assets/7d4efb99-a007-4482-a998-7a94fc466b8d)
 
@@ -530,7 +530,7 @@ Flag format: yyyy-mm-dd hh:mm:ss"
 ## (3) 実行
 ![image](https://github.com/user-attachments/assets/33f64d6f-1f8f-4f1f-a702-b9344ead4d7c)
 
-# PE-2
+# 9 PE-2
 ## (1) 問題
 ![image](https://github.com/user-attachments/assets/4cc60c8d-1315-4daa-b162-128fd7f2e69e)
 ```
@@ -547,4 +547,129 @@ Flag format: domainname\accountname"
 
 ## (2) 方針
 * 2021-04-01 03:08:14の近くで実行または、ログインしていたユーザアカウントを探す。
-* 10.1.0.80のユーザを確認する
+* fulldir.txtなのでディレクトリに対する調査を行ったと考え、Powershellの実行がないか調べる
+* WMIの実行を確認する
+* windows defenderのログを確認する
+* 
+
+## (3) 実行
+### ◇ powershellの実行
+同じくらいの時間帯に実行された攻撃は、なかったが、興味深い、psmapの実行が見つかった
+![image](https://github.com/user-attachments/assets/ce9fbe6c-3b36-49d0-b572-841f5376cc0b)
+* C:\inetpub\wwwroot\alien\legit.zipが作成されていた。
+* このファイルイベントファイルじゃなかった
+* 以下のファイルでないといけなかった
+```
+Microsoft-Windows-PowerShell%4Operational
+```
+
+### ◇ powershellの実行(コマンドの実行を見るぞ) corp側
+`Microsoft-Windows-PowerShell%4Operational`を確認する
+![image](https://github.com/user-attachments/assets/809bdfeb-ae75-44f1-86e2-1bc0f414adee)
+* 時間帯は近くないがIIS APPPOOL\alienがなぜかPowershellコマンドを実行していた。
+* 通常、psmapを利用しないはずなのに!!
+
+### ◇ wmiのコマンド実行を確認する
+時間帯は違うが、DMZ-WEBPUB\administratorでWmiが実行されていた(ISAの情報を取得していた。)
+![image](https://github.com/user-attachments/assets/ea732575-011f-4ed6-b296-798e682d278c)
+
+### ◇ corpのWindowsDefenderのログ
+![image](https://github.com/user-attachments/assets/06490524-151e-4a1c-bdf2-69fde6dbf817)
+時間帯は近くないが、**sysinternalsは以下がDefenderのスキャンの対象外のディレクトリに設定されていた。**
+
+### ◇ corpのMFTを確認
+#### 見つかったもの1つ目
+![image](https://github.com/user-attachments/assets/861c4107-4c28-4aed-b082-1351f4a6ffe3)
+* container.datがdev_agardnerの配下で作成されていた。
+
+#### 見つかったもの2つ目
+![image](https://github.com/user-attachments/assets/525e8b72-5a3d-4358-899d-9568b3514812)
+* 2021-04-01 03:22:14 netstat.txtが作成(netstatコマンドが実行されていた
+* 2021-04-01 04:07:32 psmap.zipが落とされた
+
+#### 見つかったもの3つ目
+![image](https://github.com/user-attachments/assets/1074f0ed-bcbf-4fc3-baa7-39f544a45d4f)
+* Collector_velociraptor-v0.5.7-windows-amd64.exeが
+
+#### 見つかったもの4つ目
+![image](https://github.com/user-attachments/assets/5431d26c-19ef-4094-9c17-1dd795f65119)
+* 2021-04-01 03:30:34 - alien_dbのフォルダが作成されていた。
+* 2021-04-01 03:29:23 - Windows NUPdateのタスクが作成されていた.
+
+#### 見つかったもの5つ目
+![image](https://github.com/user-attachments/assets/27ab39f2-8f01-4a65-9297-083ac6cbd437)
+* PowershellのフォルダにStartupProfileData-NonInteractiveが実行されていた。
+
+### ◇ corpのドメインを確認
+レジストリから確認した
+![image](https://github.com/user-attachments/assets/b6d643b6-e2b4-4d6e-8885-b05e11fafdda)
+
+### ◇ 
+
+### ◇ 結論
+Webから攻撃を受けたということと、インストールされたインターナルのWindowsツールを使用していたことからIIS APPPOOL\alienで攻撃したのだと考えられる
+
+## (4) 参考文献
+IIS APPPOOLとは：https://aspnet.keicode.com/aspnet/aspnet-apppool.php
+
+# 10 PE-3
+## (1) 問題
+![image](https://github.com/user-attachments/assets/096a49ff-fc47-487e-9fa4-51bf41f903c9)
+```
+ 100
+攻撃者が攻撃を継続するためには、より高い権限を持つ正当な認証情報が必要でした。攻撃者が使用したより高い権限を持つアカウント名はなんですか？
+
+フラグ形式：アカウント名
+
+この問題に正答すると「Miscellaneous」の「4」が解放されます
+
+"The actor needed legitimate credentials with higher privilege to continue their attack. What account did they use which had higher privileges?
+
+Flag format: accountname"
+```
+webサーバは、IP が10.1.1.110だった。
+## (2) 方針 
+* ログインを確認する
+![image](https://github.com/user-attachments/assets/702db1d1-9b0a-4934-91ec-2a6083e19a67)
+* すでにalien_dbのユーザフォルダの作成を発見していたのでこれが利用されていると考える
+## (3) 実行
+### ◇ 獲得していたalien_dbの情報
+2021-04-01 03:30:34 - alien_dbのフォルダが作成されていた。
+
+### ◇ alien_dbのセキュリティログを調べる
+注意：解析端末上のイベントビュアーで見ているため、時刻が日本標準時(+0900)になっているので、「-0900」で見てください。
+![image](https://github.com/user-attachments/assets/89ece09c-469e-4187-b933-e98258cd5089)
+* 2021/04/01 3:29:23 にドメインに対する認証が行われていた。
+
+### ◇ まとめる
+
+マシン上にユーザプロファイル(ユーザのディレクトリ)のないドメインユーザにログインしたことがわかるためalien_dbのユーザに勝手にログイン(権限昇格)されたと考えられる
+
+# 11 PE-4
+## (1) 問題
+![image](https://github.com/user-attachments/assets/aae94089-d381-4ab5-9d99-722b29c039a5)
+## (2) 方針
+securityログからアクセス情報をかくにんする
+
+## (3) 実行
+
+
+# 12 PE-5
+## (1) 問題
+
+```
+新しい認証情報を活用し、攻撃者はプロセスを開始しました。この最初のプロセスのPIDは何でしょうか？
+
+フラグ形式です。PID
+
+"Continuing to flex their new credentials, the actor then started a process. What was the PID of this first process?
+
+Flag format: PID"
+```
+## (2) 方針
+alien_db
+
+
+## (3) 実行
+### ◇ ログイン情報をイベントログで確認する
+![image](https://github.com/user-attachments/assets/f5052a8a-19e1-4def-b1cb-5be079c25db8)
