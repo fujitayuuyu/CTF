@@ -1,4 +1,4 @@
-![image](https://github.com/user-attachments/assets/1f3107ee-7192-4e9f-ada9-35e0a5062dc8)![image](https://github.com/user-attachments/assets/744f3b28-4278-4f5e-9286-04b6617e7340)# 1 GS-3 
+![image](https://github.com/user-attachments/assets/d5a67b6a-445d-484a-be45-a94a00825d54)![image](https://github.com/user-attachments/assets/1f3107ee-7192-4e9f-ada9-35e0a5062dc8)![image](https://github.com/user-attachments/assets/744f3b28-4278-4f5e-9286-04b6617e7340)# 1 GS-3 
 ## (1) 問題
 ![image](https://github.com/user-attachments/assets/7d4efb99-a007-4482-a998-7a94fc466b8d)
 
@@ -639,6 +639,10 @@ webサーバは、IP が10.1.1.110だった。
 ![image](https://github.com/user-attachments/assets/89ece09c-469e-4187-b933-e98258cd5089)
 * 2021/04/01 3:29:23 にドメインに対する認証が行われていた。
 
+![image](https://github.com/user-attachments/assets/4cf8cc3c-c824-4ffd-b94c-513991bec35e)
+* 多くの特権が与えられている。
+
+
 ### ◇ まとめる
 
 マシン上にユーザプロファイル(ユーザのディレクトリ)のないドメインユーザにログインしたことがわかるためalien_dbのユーザに勝手にログイン(権限昇格)されたと考えられる
@@ -646,11 +650,10 @@ webサーバは、IP が10.1.1.110だった。
 # 11 PE-4
 ## (1) 問題
 ![image](https://github.com/user-attachments/assets/aae94089-d381-4ab5-9d99-722b29c039a5)
-## (2) 方針
-securityログからアクセス情報をかくにんする
-
-## (3) 実行
-
+## (2) 方針？
+その前のセキュリティログの検索で2021/04/01 3:29:23 にドメインに対するalien_dbの認証が実施されていたのでこれだと考えられる。
+## (3) 考察(推測)
+同時刻、03:29:23に「Windows NUPdate」のタスクが作成されていたので、このalien_dbの資格情報を利用して、copwebに悪意のあるタスクを作成し、権限昇格したのだ思われる。
 
 # 12 PE-5
 ## (1) 問題
@@ -665,9 +668,35 @@ securityログからアクセス情報をかくにんする
 Flag format: PID"
 ```
 ## (2) 方針
-alien_db
+PE-3の時得たMFTの情報から`Windows NUPdate`タスクが作成されたと考えられる
+![image](https://github.com/user-attachments/assets/5431d26c-19ef-4094-9c17-1dd795f65119)
+* なのでWindowsTaskSchedulerのログを確認する
+  
+## (3) 実行
+### ◇ TaskSchedulerのログを確認する
+Microsoft-Windows-TaskScheduler/Operationalを確認
+![image](https://github.com/user-attachments/assets/b41a7141-cd08-47c4-958f-93e39904675e)
+* このタスクは、やはり、alian_dbによって実行されていた
+![image](https://github.com/user-attachments/assets/c918a7fc-c0ff-46a3-bf75-22319a00cd2c)
+* 一番初めにprocdump.exeが実行されていた。権限昇格のために重要なプロセスをダンプしたと思われる
+* PID 5372で実行されていた
 
+### ◇ 結論
+PID 5372で実行されている。
+
+## (4) 文献
+procdumpコマンドとは、：https://learn.microsoft.com/ja-jp/sysinternals/downloads/procdump
+
+# 12 PE-6
+## (1) 問題
+
+## (2) 方針
+* 先程実行されていたコマンドがprocdumpであり、プロセスダンプをするコマンドなので.dmpファイルがないかMFTを用いて調べる
 
 ## (3) 実行
-### ◇ ログイン情報をイベントログで確認する
-![image](https://github.com/user-attachments/assets/f5052a8a-19e1-4def-b1cb-5be079c25db8)
+![image](https://github.com/user-attachments/assets/bc1ccfd1-c6a8-4b5b-8c78-0bd58f22adb1)
+* 2021-04-01 lsass.dmpがあった
+
+## (4) 考察(推測)
+lsassの実行メモリがダンプされてしまっていることから、mimikatz等のツールを用いてcorpwebマシンの資格情報は、このマシンでログインされたユーザ及び利用したチケットが奪われたと考えられる
+
