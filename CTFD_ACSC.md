@@ -1,4 +1,4 @@
-# 1 GS-3 
+![image](https://github.com/user-attachments/assets/744f3b28-4278-4f5e-9286-04b6617e7340)# 1 GS-3 
 ## (1) 問題
 ![image](https://github.com/user-attachments/assets/7d4efb99-a007-4482-a998-7a94fc466b8d)
 
@@ -369,6 +369,182 @@ sample2の作成後、連続して、「`submit.aspx.cdcab7d2.compiled`、`App_W
 `\Windows\Microsoft.NET\Framework64\v4.0.30319\Temporary ASP.NET Files`について書いてあった：https://manage.accuwebhosting.com/knowledgebase/5034/How-to-Clear-the-ASP.NET-Temporary-files-in-Windows.html
 
 # 6 LM-1
+## (1) 問題
+![image](https://github.com/user-attachments/assets/9c8d6557-e570-464b-a341-479979d0ef39)
+```
+”sample 2”をドロップした直後に攻撃者は興味深いファイルをダウンロードしたようです。 このファイルは、どのプロセスに関連しているのでしょうか？
+
+フラグ・フォーマット：ABCD
+
+"Shortly after dropping sample 2 on disk, the actor seems to have downloaded an interesting looking file. What service does this file relate to?
+
+Flag format: ABCD"
+```
+
+## (2) 方針
+* ウィンドウズログから見る
+* MFTのタイムラインから見る
+* ダウンロードされているのでsample2がドロップされた時間帯のWebのアクセスログを確認する
+## (3) 実行
+### ◇ Windowsログから見る、タイムラインから見る
+いろいろアクセス等が分かったが、実際にダウンロードされているかなどは分からなかった。
+これにかなり無駄な時間を割いてしまった。アクセスしていたものとか
+### ◇ webのログを確認する
+![image](https://github.com/user-attachments/assets/a8e3219d-80be-4bd0-8d78-790ba3bf8a39)
+
+* /dfsr-reports/Health-alien_webdev-31Mar2021-0421.xmlというファイルがダウンロードされていた。
+
+#### dfsr-reportsとは
+DFSRのレポート
+#### DFSRとは
+* DFSレプリケーションのファイルで、分散ファイル システム レプリケーション(DFS レプリケーション) * 複数のサーバーやサイト間で効率的にフォルダーをレプリケートできる Windows Server の役割サービス。
+* DFS 名前空間パスで参照されるフォルダーを含め、すべての種類のフォルダーを複製できる。
+
+⇒ つまり、サーバ間でフォルダーを複製して、同期とかバックアップとかに利用できる役割サービスってこと
+### ◇ 結論
+DFSRに関係するファイル！！
+
+## (4) 参考文献
+DFSRについて：https://learn.microsoft.com/ja-jp/windows-server/storage/dfs-replication/dfsr-overview
+
+# 6 LM-2
+## (1) 問題
+![image](https://github.com/user-attachments/assets/7b412292-b859-4662-ab65-98cfb5b2da2a)
+```
+Webサーバーは、DFSRを介してネットワーク上の別のホストに接続されました。 DFSR経由でDMZのWebサーバーとつながっているサーバーのホスト名はなんでしょう？
+
+フラグ形式：ホスト名
+
+"So the DMZ webserver was connected via DFSR to another host on the network. What is the hostname of the server that is linked to the DMZ webserver through DFSR?
+
+Flag format: Hostname"
+```
+## (2) 方針
+* windowsのセキュリティイベントログからネットログインまたは、サービスログインを確認する
 
 ## (3) 実行
-![image](https://github.com/user-attachments/assets/a7aabe13-fba6-4a47-89b3-4748a892a188)
+### ◇ Windowsセキュリティイベントの確認
+注意：解析端末上のイベントビュアーで見ているため、時刻が日本標準時(+0900)になっているので、「-0900」で見てください。
+![image](https://github.com/user-attachments/assets/6b432d76-e3b0-4671-bc6e-aea9cae0aabc)
+
+![image](https://github.com/user-attachments/assets/18dd2d13-6716-4575-b487-8749e1fbec25)
+
+* 10.2.0.196及び10.1.0.80からネットログイン(LogonType : 3)でRCPポートを用いてログイン処理がされていることが分かった
+* しかしながら、DFSRで実行されているのかは、不明
+* dev_agarnderユーザにログインされていた
+* jadminユーザにログインされていた
+
+### ◇ jadminについて
+* JUMPHOST1というワークステーションにいた(つまり、jadminはドメインユーザではない)
+* jadminを持つマシンがあるかもしれない
+
+### ◇ DFSRに関連するイベントログを確認する
+![image](https://github.com/user-attachments/assets/927c514f-cf9e-43f4-8874-080b44a5d966)
+
+corp-webdevと接続していた
+
+### 結論
+corp-webdevだ！！
+
+# 7 LM-3
+## (1) 問題
+![image](https://github.com/user-attachments/assets/af320556-0336-47e6-9030-1912c9aea082)
+```
+DFSRということは？ ファイルの移動と関係があるのでは？ "sample2"が他のサーバーにコピーされた可能性はありませんか？
+
+レプリケーションフォルダのファイルパスはどうなっていたのでしょうか？
+
+フラグフォーマット: c:\a\file\path
+
+この問題に正答すると「Miscellaneous」の「1」が解放されます
+
+"DFSR? Doesn't that have something to do with moving files around? Could sample 2 have been copied onto another server?
+
+What was the filepath of the replicated folder?
+
+Flag format: c:\a\file\path"
+```
+
+## (2) 方針
+先程のイベントログから共有しているファイルを読み取る
+
+## (3) 実行
+![image](https://github.com/user-attachments/assets/2f0e84f4-3ade-4c15-9be8-bbd8167e8086)
+![image](https://github.com/user-attachments/assets/2ed0aa29-e61f-443e-be64-bf00566eb4c7)
+
+* testdfsrとC:\inetpub\wwwroot\alieｎが作成されていた
+
+# 8 LM-4
+## (1) 問題
+![image](https://github.com/user-attachments/assets/5e349fbb-d00d-4456-b6c8-00bbca56eb3b)
+```
+"sample2"はCORP-WEBDEVにコピーされましたが、攻撃者がDFSRの設定を把握していたかどうか、コピーしたファイルにアクセスが成功していたかどうかはわかりません。ありがたいことに、ALIENはCORP-WEBDEVのデータも提供してくれたので、調査が継続できそうです。
+
+攻撃者がCORP-WEBDEV上の"sample2"を操作できるかどうか確かめたのは何時（UTC）ですか？
+
+フラグ形式： yyyy-mm-dd hh:mm:ss
+
+"So sample 2 was replicated onto CORP-WEBDEV, but we don't know if the actor were aware of the DFSR setup, or if they were able to access the replicated sample. Thankfully, ALIEN have provided data from CORP-WEBDEV for us to continue the investigation.
+
+What time (UTC) did the actor test their ability to interact with the copy of sample 2 on CORP-WEBDEV?
+
+Flag format: yyyy-mm-dd hh:mm:ss"
+```
+
+## (2) 方針
+* CORP-WEBDEVのウェブのログを確認する！！
+* submit.aspx.cdcab7d2.compiledが出ていたのでsubmitに関連するファイルへのWebアクセスであればこの可能性が高い
+
+## (3) 実行
+1. CORP-WEBDEVのwebログファイルを見やすいように加工
+```
+cat *.log | grep -v "#" | cut -d" " -f 1,2,4,5,9,12 > processed-log.txt
+```
+2. 2021-04-01に絞って検索
+![image](https://github.com/user-attachments/assets/a403296d-7578-4779-be38-3ab59d7affd1)
+
+* submitは10.1.0.80(dev_agarnder)でみられていた。
+* 2021-04-01 03:03:16に初めに確認していた(GET)
+
+# 9 PE-1
+## (1) 問題
+![image](https://github.com/user-attachments/assets/dd518c55-1679-4baa-82bd-7cb04cf0350a)
+```
+攻撃者はさらにいくつかの偵察コマンドを実行したようですが、その後始末は怠ったようです。
+
+偵察コマンドの出力結果を含むと思われるファイルが作成された時刻(UTC)は？
+
+フラグ・フォーマット: yyyy-mm-dd hh:mm:ss
+
+この問題に正答すると「Miscellaneous」の「2」が解放されます
+
+"It looks like the actor ran some more reconnaissance commands and, once again, forgot to clean up after themselves.
+
+What time (UTC) was the file containing the command's output created?
+
+Flag format: yyyy-mm-dd hh:mm:ss"
+```
+## (2) 方針 
+* fulldir.txtが先程のログで見つかったのでこれを探す
+
+## (3) 実行
+![image](https://github.com/user-attachments/assets/33f64d6f-1f8f-4f1f-a702-b9344ead4d7c)
+
+# PE-2
+## (1) 問題
+![image](https://github.com/user-attachments/assets/4cc60c8d-1315-4daa-b162-128fd7f2e69e)
+```
+攻撃者がこれらのコマンドを実行した際に使用したユーザーアカウントは？
+
+フラグ・フォーマット: domainname\accountname
+
+この問題に正答すると「Miscellaneous」の「3」が解放されます
+
+"What user account was the actor running these commands as?
+
+Flag format: domainname\accountname"
+```
+
+## (2) 方針
+* 2021-04-01 03:08:14の近くで実行または、ログインしていたユーザアカウントを探す。
+* 10.1.0.80のユーザを確認する
